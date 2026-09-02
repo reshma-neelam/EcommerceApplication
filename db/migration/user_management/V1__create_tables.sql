@@ -11,9 +11,9 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT uq_users_email UNIQUE (email)
-);
-CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
-CREATE INDEX IF NOT EXISTS idx_users_created ON users(created_at);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_users_status ON users(status);
+CREATE INDEX idx_users_created ON users(created_at);
 
 CREATE TABLE IF NOT EXISTS user_credential (
     user_id CHAR(36) NOT NULL PRIMARY KEY,
@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS user_credential (
     locked_until DATETIME,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
-);
-CREATE INDEX IF NOT EXISTS idx_credential_locked ON user_credential(locked_until);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_credential_locked ON user_credential(locked_until);
 
 CREATE TABLE IF NOT EXISTS user_session (
     id CHAR(36) NOT NULL PRIMARY KEY,
@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS user_session (
     client_fingerprint VARCHAR(255),
     CONSTRAINT uq_session_token UNIQUE (refresh_token_hash),
     FOREIGN KEY (user_id) REFERENCES users(id)
-);
-CREATE INDEX IF NOT EXISTS idx_session_user_revoked ON user_session(user_id, revoked_at);
-CREATE INDEX IF NOT EXISTS idx_session_expires ON user_session(expires_at);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_session_user_revoked ON user_session(user_id, revoked_at);
+CREATE INDEX idx_session_expires ON user_session(expires_at);
 
 CREATE TABLE IF NOT EXISTS user_address (
     id CHAR(36) NOT NULL PRIMARY KEY,
@@ -53,20 +53,20 @@ CREATE TABLE IF NOT EXISTS user_address (
     postal_code VARCHAR(32) NOT NULL,
     country_code CHAR(2) NOT NULL,
     phone VARCHAR(32),
-    is_default INTEGER NOT NULL DEFAULT 0,
+    is_default TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
-);
-CREATE INDEX IF NOT EXISTS idx_address_user_type ON user_address(user_id, address_type);
-CREATE INDEX IF NOT EXISTS idx_address_user_default ON user_address(user_id, is_default);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_address_user_type ON user_address(user_id, address_type);
+CREATE INDEX idx_address_user_default ON user_address(user_id, is_default);
 
 CREATE TABLE IF NOT EXISTS role (
     id CHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(64) NOT NULL,
     description VARCHAR(255),
     CONSTRAINT uq_role_name UNIQUE (name)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS user_role (
     user_id CHAR(36) NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS user_role (
     PRIMARY KEY (user_id, role_id),
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (role_id) REFERENCES role(id)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS outbox_event (
     id CHAR(36) NOT NULL PRIMARY KEY,
@@ -88,5 +88,5 @@ CREATE TABLE IF NOT EXISTS outbox_event (
     published_at DATETIME,
     retry_count INT NOT NULL DEFAULT 0,
     last_error VARCHAR(1000)
-);
-CREATE INDEX IF NOT EXISTS idx_outbox_status_created ON outbox_event(status, created_at);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_outbox_status_created ON outbox_event(status, created_at);
