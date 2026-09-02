@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS orders (
     cancelled_at DATETIME,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT uq_orders_number UNIQUE (order_number)
-);
-CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders(user_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_orders_user_created ON orders(user_id, created_at);
+CREATE INDEX idx_orders_status_created ON orders(status, created_at);
 
 CREATE TABLE IF NOT EXISTS order_item (
     id CHAR(36) NOT NULL PRIMARY KEY,
@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS order_item (
     currency CHAR(3) NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id),
     CHECK (quantity > 0)
-);
-CREATE INDEX IF NOT EXISTS idx_orderitem_order ON order_item(order_id);
-CREATE INDEX IF NOT EXISTS idx_orderitem_product ON order_item(product_id);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_orderitem_order ON order_item(order_id);
+CREATE INDEX idx_orderitem_product ON order_item(product_id);
 
 CREATE TABLE IF NOT EXISTS order_address (
     id CHAR(36) NOT NULL PRIMARY KEY,
@@ -48,8 +48,8 @@ CREATE TABLE IF NOT EXISTS order_address (
     country_code CHAR(2) NOT NULL,
     phone VARCHAR(32),
     FOREIGN KEY (order_id) REFERENCES orders(id)
-);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_orderaddr_order_type ON order_address(order_id, address_type);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE UNIQUE INDEX uq_orderaddr_order_type ON order_address(order_id, address_type);
 
 CREATE TABLE IF NOT EXISTS order_status_history (
     id CHAR(36) NOT NULL PRIMARY KEY,
@@ -62,9 +62,9 @@ CREATE TABLE IF NOT EXISTS order_status_history (
     changed_by_id VARCHAR(128),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id)
-);
-CREATE INDEX IF NOT EXISTS idx_statushist_order_created ON order_status_history(order_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_statushist_tostatus ON order_status_history(to_status, created_at);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_statushist_order_created ON order_status_history(order_id, created_at);
+CREATE INDEX idx_statushist_tostatus ON order_status_history(to_status, created_at);
 
 CREATE TABLE IF NOT EXISTS order_idempotency (
     id CHAR(36) NOT NULL PRIMARY KEY,
@@ -75,9 +75,9 @@ CREATE TABLE IF NOT EXISTS order_idempotency (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at DATETIME NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id)
-);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_idempotency_user_key ON order_idempotency(user_id, idempotency_key);
-CREATE INDEX IF NOT EXISTS idx_idempotency_expires ON order_idempotency(expires_at);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE UNIQUE INDEX uq_idempotency_user_key ON order_idempotency(user_id, idempotency_key);
+CREATE INDEX idx_idempotency_expires ON order_idempotency(expires_at);
 
 CREATE TABLE IF NOT EXISTS inbox_event (
     event_id CHAR(36) NOT NULL PRIMARY KEY,
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS inbox_event (
     received_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     processed_at DATETIME,
     last_error VARCHAR(1000)
-);
-CREATE INDEX IF NOT EXISTS idx_inbox_status_received ON inbox_event(status, received_at);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_inbox_status_received ON inbox_event(status, received_at);
 
 CREATE TABLE IF NOT EXISTS outbox_event (
     id CHAR(36) NOT NULL PRIMARY KEY,
@@ -102,6 +102,6 @@ CREATE TABLE IF NOT EXISTS outbox_event (
     published_at DATETIME,
     retry_count INT NOT NULL DEFAULT 0,
     last_error VARCHAR(1000)
-);
-CREATE INDEX IF NOT EXISTS idx_outbox_status_created ON outbox_event(status, created_at);
-CREATE INDEX IF NOT EXISTS idx_outbox_aggregate ON outbox_event(aggregate_type, aggregate_id);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_outbox_status_created ON outbox_event(status, created_at);
+CREATE INDEX idx_outbox_aggregate ON outbox_event(aggregate_type, aggregate_id);

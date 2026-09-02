@@ -15,7 +15,8 @@ public abstract class BaseModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String catalogName;
+    @Version
+    private Long version;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
