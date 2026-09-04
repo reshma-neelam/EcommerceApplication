@@ -1,7 +1,10 @@
 package com.scaler.productcatalog.exception;
 
-public class ConflictException extends RuntimeException {
-    public ConflictException(String message) {
-        super(message);
+import org.springframework.http.HttpStatus;
+
+public class ConflictException extends ApiException {
+
+    public ConflictException(String code, String message) {
+        super(code, HttpStatus.CONFLICT, message);
     }
 }

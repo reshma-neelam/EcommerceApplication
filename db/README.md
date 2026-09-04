@@ -16,14 +16,19 @@ This folder holds SQL schema references for the ecommerce services. All services
 - Storage engine `InnoDB` (required for foreign keys and transactional integrity).
 - Character set `utf8mb4`.
 - UUID primary and foreign keys stored as `CHAR(36)`.
-- Timestamps use `DATETIME`.
-- JSON-like payloads use `TEXT`.
-- Boolean flags use `TINYINT(1)` (0 = false, 1 = true).
-- Scripts use `CREATE TABLE IF NOT EXISTS` for repeatable local setup.
+- Timestamps use `DATETIME(6)` in UTC.
+- Money uses `DECIMAL(19,4)` plus a `CHAR(3)` ISO-4217 currency code.
+- Event payloads use native `JSON`.
+- Boolean flags use `BOOLEAN` (`TINYINT(1)` in MySQL).
+- The Product Catalog `V1` baseline is frozen; later changes use `V2`, `V3`, ...
 
-## ProductCatalog profile
+## Product Catalog migration
 
-The ProductCatalog service runs on the `mysql` profile only. Connection settings live in `ProductCatalog/src/main/resources/application-mysql.properties` and read env vars `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` (defaults `localhost` / `3306` / `product_catalog_db` / `root` / `root`). Flyway runs `classpath:db/migration` on startup.
+The active Flyway migration at `ProductCatalog/src/main/resources/db/migration/V1__create_tables.sql`
+is the executable source of truth. The reference copy in `migration/product_catalog/` is kept
+byte-identical to it. The service reads env vars `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME`
+/ `DB_PASSWORD` (see `.env.example`) and runs `classpath:db/migration` on startup under the
+`local` and `docker` profiles.
 
 ## Quick validation
 

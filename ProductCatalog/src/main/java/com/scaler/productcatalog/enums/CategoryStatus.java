@@ -1,7 +1,6 @@
 package com.scaler.productcatalog.enums;
 
-public enum ProductState {
-
+public enum CategoryStatus {
     ACTIVE,
     INACTIVE
 }

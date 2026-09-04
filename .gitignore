@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Local environment (never commit real values) ###
+.env
+!.env.example
+
 ### Markdown docs (not committed) ###
 *.md
 !README.md
@@ -36,3 +40,8 @@ build/
 
 ### VS Code ###
 .vscode/
+.editorconfig
+
+
+###
+/bruno
