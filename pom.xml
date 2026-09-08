@@ -17,15 +17,7 @@
     <name>ecommerce-parent</name>
     <description>Ecommerce Application parent - centralized build configuration for all services</description>
 
-    <!--
-      Service module layout note (Week 1, W01-02):
-      The Product Catalog service intentionally retains its existing capitalized
-      folder name "ProductCatalog" instead of being renamed to a lowercase
-      module layout. This avoids a disruptive path/history rewrite at this stage.
-      Future services are expected to follow the agreed lowercase layout; this
-      single retained exception is documented here on purpose.
-    -->
-    <modules>
+     <modules>
         <module>ProductCatalog</module>
         <module>UserManagement</module>
     </modules>
@@ -53,12 +45,6 @@
     <build>
         <pluginManagement>
             <plugins>
-                <!--
-                  Code formatting configuration. Unbound to any lifecycle phase so
-                  it never fails the default build; run explicitly when desired:
-                    ./mvnw spotless:check   (verify formatting)
-                    ./mvnw spotless:apply   (auto-format sources)
-                -->
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
