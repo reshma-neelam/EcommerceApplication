@@ -1,0 +1,93 @@
+CREATE TABLE users (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    email VARCHAR(320) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(32),
+    status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+    email_verified_at DATETIME(6),
+    last_login_at DATETIME(6),
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    version BIGINT NOT NULL DEFAULT 0,
+    CONSTRAINT uq_users_email UNIQUE (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_users_status ON users(status);
+CREATE INDEX idx_users_created ON users(created_at);
+
+CREATE TABLE user_credential (
+    user_id CHAR(36) NOT NULL PRIMARY KEY,
+    password_hash VARCHAR(255) NOT NULL,
+    password_algorithm VARCHAR(32) NOT NULL DEFAULT 'BCRYPT',
+    password_changed_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_credential_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE user_session (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    refresh_token_hash CHAR(64) NOT NULL,
+    issued_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    expires_at DATETIME(6) NOT NULL,
+    revoked_at DATETIME(6),
+    client_fingerprint VARCHAR(255),
+    CONSTRAINT uq_session_token UNIQUE (refresh_token_hash),
+    CONSTRAINT fk_session_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_session_user_revoked ON user_session(user_id, revoked_at);
+CREATE INDEX idx_session_expires ON user_session(expires_at);
+
+CREATE TABLE user_address (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    address_type VARCHAR(24) NOT NULL DEFAULT 'SHIPPING',
+    recipient_name VARCHAR(200) NOT NULL,
+    line1 VARCHAR(255) NOT NULL,
+    line2 VARCHAR(255),
+    city VARCHAR(128) NOT NULL,
+    state_region VARCHAR(128),
+    postal_code VARCHAR(32) NOT NULL,
+    country_code CHAR(2) NOT NULL,
+    phone VARCHAR(32),
+    is_default TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_address_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_address_user_type ON user_address(user_id, address_type);
+CREATE INDEX idx_address_user_default ON user_address(user_id, is_default);
+
+CREATE TABLE role (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    name VARCHAR(64) NOT NULL,
+    description VARCHAR(255),
+    CONSTRAINT uq_role_name UNIQUE (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE user_role (
+    user_id CHAR(36) NOT NULL,
+    role_id CHAR(36) NOT NULL,
+    assigned_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (user_id, role_id),
+    CONSTRAINT fk_user_role_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_user_role_role FOREIGN KEY (role_id) REFERENCES role(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE outbox_event (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    aggregate_type VARCHAR(64) NOT NULL DEFAULT 'USER',
+    aggregate_id CHAR(36) NOT NULL,
+    event_type VARCHAR(128) NOT NULL,
+    payload_json JSON NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'NEW',
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    published_at DATETIME(6),
+    retry_count INT NOT NULL DEFAULT 0,
+    last_error VARCHAR(1000)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_outbox_status_created ON outbox_event(status, created_at);
+
+INSERT INTO role (id, name, description) VALUES
+    ('11111111-1111-1111-1111-111111111111', 'CUSTOMER', 'Standard customer role'),
+    ('22222222-2222-2222-2222-222222222222', 'ADMIN', 'Administrative role');
