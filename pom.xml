@@ -27,6 +27,7 @@
     -->
     <modules>
         <module>ProductCatalog</module>
+        <module>UserManagement</module>
     </modules>
 
     <properties>
