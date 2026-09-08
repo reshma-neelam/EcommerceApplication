@@ -5,12 +5,8 @@ with a single root Maven wrapper.
 
 ## Planning and Deployment
 
-- [Low-level design](docs/Ecommerce_LLD_Design.md)
-- [Database schema design](docs/Ecommerce_DB_Schema_Design.md)
-- [Week-by-week implementation plan](docs/Ecommerce_Implementation_Plan.md)
-- [Living implementation tracker](docs/Ecommerce_Implementation_Tracker.md)
-- [Current implementation changes](docs/Ecommerce_Current_Implementation_Changes.md)
-- [Docker and AWS learning deployment guide](docs/Ecommerce_Docker_AWS_Deployment_Guide.md)
+- [Low-level design](docs/Ecommerce_LLD_Design.docx)
+- [Database schema design](docs/Ecommerce_DB_Schema_Design.docx)
 
 ## Project Structure
 
