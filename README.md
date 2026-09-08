@@ -27,6 +27,11 @@ EcommerceApplication/
   docs/                    # Design documents (LLD, DB Schema)
 ```
 
+> Module layout note: the Product Catalog service intentionally keeps its
+> existing capitalized folder name `ProductCatalog` rather than being renamed to
+> a lowercase module layout. This avoids a disruptive path/history rewrite at
+> this stage; future services follow the agreed lowercase layout.
+
 ## Prerequisites
 
 - **Java 21** (JDK)
