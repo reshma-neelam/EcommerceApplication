@@ -20,6 +20,7 @@
      <modules>
         <module>ProductCatalog</module>
         <module>UserManagement</module>
+        <module>OrderProcessor</module>
     </modules>
 
     <properties>
