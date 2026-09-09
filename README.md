@@ -18,7 +18,8 @@ EcommerceApplication/
   .env.example             # Copy to .env for local overrides
   ProductCatalog/          # Product Catalog Service (port 8080)
   UserManagement/          # User Management Service - identity, auth, JWT (port 8081)
-  bruno/                   # Bruno REST API collections (ProductCatalog, UserManagement)
+  OrderProcessor/          # Order Processor Service - order lifecycle, snapshots (port 8082)
+  bruno/                   # Bruno REST API collections (ProductCatalog, UserManagement, OrderProcessor)
   db/migration/            # Reference SQL schemas for all 5 services
   docs/                    # Design documents (LLD, DB Schema)
 ```
@@ -158,7 +159,52 @@ duplicated. To disable it again, unset the variables (or start a new shell):
 Remove-Item Env:ADMIN_BOOTSTRAP_ENABLED, Env:ADMIN_BOOTSTRAP_EMAIL, Env:ADMIN_BOOTSTRAP_PASSWORD
 ```
 
+## Run the Order Processor service
+
+Order lifecycle service: creates orders with authoritative money and immutable
+item/address snapshots, reserves inventory in Product Catalog, and validates the
+first-party JWTs issued by User Management. Defaults to the `local` profile and
+MySQL on `localhost:3306`; it runs on port **8082** so it can run alongside
+Product Catalog (8080) and User Management (8081). Its database
+(`order_processor_db`) is created automatically on first run.
+
+Start dependencies and the upstream services first, then run the service:
+
+```powershell
+docker compose -f compose.deps.yaml up -d
+# Start ProductCatalog (8080) and UserManagement (8081) first; JWT_SECRET must match UserManagement.
+.\mvnw.cmd -pl OrderProcessor spring-boot:run
+```
+
+H2 demo (no MySQL, in-memory schema from JPA entities):
+
+```powershell
+.\mvnw.cmd -pl OrderProcessor spring-boot:run -Ph2demo "-Dspring-boot.run.profiles=h2"
+```
+
+Run its self-contained tests, or the MySQL Testcontainers migration test:
+
+```powershell
+.\mvnw.cmd -pl OrderProcessor test      # H2 only, no MySQL/ProductCatalog needed
+.\mvnw.cmd -pl OrderProcessor verify     # adds OrderProcessorMysqlMigrationIT (needs Docker)
+```
+
+### Configuration via environment variables
+
+Shares the `DB_*` variables above (with `DB_NAME` defaulting to
+`order_processor_db`) plus these service-specific values:
+
+| Variable                | Default                 | Description                                                    |
+|-------------------------|-------------------------|----------------------------------------------------------------|
+| `SERVER_PORT`           | `8082`                  | HTTP port                                                      |
+| `DB_NAME`               | `order_processor_db`    | Database name                                                  |
+| `JWT_SECRET`            | local dev placeholder   | HMAC secret; **must match** User Management for token validation |
+| `JWT_ISSUER`            | `user-management`       | Expected JWT `iss` claim                                       |
+| `PRODUCT_CATALOG_URL`   | `http://localhost:8080` | Base URL for synchronous snapshot/reservation calls           |
+| `ORDER_CURRENCY`        | `INR`                   | Single configured order currency (MVP)                        |
+
 ## Verify a running service
+
 
 ### Product Catalog (port 8080)
 
@@ -200,6 +246,22 @@ Protected endpoints require an `Authorization: Bearer <accessToken>` header;
 missing/invalid/expired tokens return HTTP 401 `UNAUTHORIZED`. Ownership is
 derived from the JWT subject, not the request body.
 
+### Order Processor (port 8082)
+
+```
+GET    http://localhost:8082/actuator/health/liveness        # liveness probe
+GET    http://localhost:8082/actuator/health/readiness       # readiness probe
+POST   http://localhost:8082/api/v1/orders                   # Create an order (CUSTOMER, needs Idempotency-Key)
+GET    http://localhost:8082/api/v1/orders                   # List own orders (CUSTOMER, paged)
+GET    http://localhost:8082/api/v1/orders/{orderId}         # Get an order (owner/ADMIN)
+GET    http://localhost:8082/api/v1/orders/{orderId}/status  # Order status + history (owner/ADMIN)
+```
+
+Order creation requires an `Idempotency-Key` header: the same key with the same
+body replays the original order, while a different body returns HTTP 409
+`DUPLICATE_REQUEST`. Money, SKU/name/price, and shipping/billing addresses are
+snapshotted; a non-owning, non-ADMIN caller receives HTTP 404 `RESOURCE_NOT_FOUND`.
+
 **Sample signup POST body:**
 
 ```json
@@ -227,6 +289,9 @@ Ready-to-run [Bruno](https://www.usebruno.com/) collections live under `bruno/`:
 - `bruno/ProductCatalog` — categories, products, images, search, and inventory flows.
 - `bruno/UserManagement` — signup/login/refresh/logout, profile, and address flows
   (requests are chained via variables; run them top-to-bottom with the **Local** environment).
+- `bruno/OrderProcessor` — login (via User Management), create/replay/conflict order,
+  get/list/status, and a validation-error case (set `productId` in the **Local** environment
+  to an existing Product Catalog product; run top-to-bottom).
 
 **Sample category POST body:**
 
