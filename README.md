@@ -24,10 +24,6 @@ EcommerceApplication/
   docs/                    # Design documents (LLD, DB Schema)
 ```
 
-> Module layout note: the Product Catalog service intentionally keeps its
-> existing capitalized folder name `ProductCatalog` rather than being renamed to
-> a lowercase module layout. This avoids a disruptive path/history rewrite at
-> this stage; future services follow the agreed lowercase layout.
 
 ## Prerequisites
 
@@ -322,5 +318,3 @@ Ready-to-run [Bruno](https://www.usebruno.com/) collections live under `bruno/`:
 
 - Schema is owned by Flyway migrations; Hibernate runs with `ddl-auto=validate`.
 - SQL and debug logging are disabled by default; raise per profile or via env when debugging.
-- Code formatting is defined by `.editorconfig` and the Spotless plugin
-  (`.\mvnw.cmd spotless:check` / `.\mvnw.cmd spotless:apply`).
