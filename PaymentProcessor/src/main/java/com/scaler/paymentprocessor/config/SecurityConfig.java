@@ -1,9 +1,9 @@
-package com.scaler.orderprocessor.config;
+package com.scaler.paymentprocessor.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.scaler.orderprocessor.dto.ApiErrorDTO;
-import com.scaler.orderprocessor.observability.CorrelationId;
-import com.scaler.orderprocessor.security.JwtAuthenticationFilter;
+import com.scaler.paymentprocessor.dto.ApiErrorDTO;
+import com.scaler.paymentprocessor.observability.CorrelationId;
+import com.scaler.paymentprocessor.security.JwtAuthenticationFilter;
 import java.time.Instant;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,7 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableMethodSecurity
-@EnableConfigurationProperties({JwtProperties.class, ProductCatalogProperties.class, OrderPricingProperties.class})
+@EnableConfigurationProperties({JwtProperties.class, OrderClientProperties.class, StripeProperties.class})
 public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
@@ -35,8 +35,9 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                .requestMatchers("/webhooks/stripe").permitAll()
                 .requestMatchers("/internal/v1/**").permitAll()
-                .requestMatchers("/api/v1/orders/**").authenticated()
+                .requestMatchers("/api/v1/payments/**").authenticated()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
