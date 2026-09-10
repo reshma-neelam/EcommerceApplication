@@ -19,7 +19,8 @@ EcommerceApplication/
   ProductCatalog/          # Product Catalog Service (port 8080)
   UserManagement/          # User Management Service - identity, auth, JWT (port 8081)
   OrderProcessor/          # Order Processor Service - order lifecycle, snapshots (port 8082)
-  bruno/                   # Bruno REST API collections (ProductCatalog, UserManagement, OrderProcessor)
+  PaymentProcessor/        # Payment Processor Service - Stripe test-mode payments, webhooks (port 8083)
+  bruno/                   # Bruno REST API collections (ProductCatalog, UserManagement, OrderProcessor, PaymentProcessor)
   db/migration/            # Reference SQL schemas for all 5 services
   docs/                    # Design documents (LLD, DB Schema)
 ```
@@ -199,6 +200,50 @@ Shares the `DB_*` variables above (with `DB_NAME` defaulting to
 | `PRODUCT_CATALOG_URL`   | `http://localhost:8080` | Base URL for synchronous snapshot/reservation calls           |
 | `ORDER_CURRENCY`        | `INR`                   | Single configured order currency (MVP)                        |
 
+## Run the Payment Processor service
+
+Stripe test-mode payment service: creates a real Stripe PaymentIntent for a
+payable order and reconciles the result through a signature-verified webhook. It
+loads the authoritative owner/amount/currency/payable state from Order Processor
+(`GET /internal/v1/orders/{orderId}/payment-details`) and never accepts a
+browser-supplied amount. Defaults to the `local` profile and MySQL on
+`localhost:3306`; it runs on port **8083** so it can run alongside Product
+Catalog (8080), User Management (8081), and Order Processor (8082). Its database
+(`payment_processor_db`) is created automatically on first run.
+
+Start dependencies and the upstream services first, then run the service:
+
+```powershell
+docker compose -f compose.deps.yaml up -d
+# Start UserManagement (8081) and OrderProcessor (8082) first; JWT_SECRET must match UserManagement.
+# Supply Stripe TEST keys (sk_test_.../whsec_...); the app refuses to start with an sk_live_ key.
+$Env:STRIPE_SECRET_KEY="sk_test_..."; $Env:STRIPE_WEBHOOK_SECRET="whsec_..."
+.\mvnw.cmd -pl PaymentProcessor spring-boot:run
+```
+
+Run its self-contained tests, or the MySQL Testcontainers migration test:
+
+```powershell
+.\mvnw.cmd -pl PaymentProcessor test      # H2 + fake gateway + WireMock, no MySQL/Stripe network
+.\mvnw.cmd -pl PaymentProcessor verify     # adds PaymentProcessorMysqlMigrationIT (needs Docker)
+```
+
+### Configuration via environment variables
+
+Shares the `DB_*` variables above (with `DB_NAME` defaulting to
+`payment_processor_db`) plus these service-specific values:
+
+| Variable                | Default                 | Description                                                    |
+|-------------------------|-------------------------|----------------------------------------------------------------|
+| `SERVER_PORT`           | `8083`                  | HTTP port                                                      |
+| `DB_NAME`               | `payment_processor_db`  | Database name                                                  |
+| `JWT_SECRET`            | local dev placeholder   | HMAC secret; **must match** User Management for token validation |
+| `JWT_ISSUER`            | `user-management`       | Expected JWT `iss` claim                                       |
+| `ORDER_PROCESSOR_URL`   | `http://localhost:8082` | Base URL for the internal order payment-details lookup        |
+| `STRIPE_SECRET_KEY`     | `sk_test_placeholder`   | Stripe **test** secret key (`sk_live_` is rejected at startup) |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_test_placeholder`| Stripe webhook signing secret for signature verification      |
+| `PAYMENT_CURRENCY`      | `INR`                   | Single configured payment currency (MVP)                      |
+
 ## Verify a running service
 
 
@@ -258,6 +303,22 @@ body replays the original order, while a different body returns HTTP 409
 `DUPLICATE_REQUEST`. Money, SKU/name/price, and shipping/billing addresses are
 snapshotted; a non-owning, non-ADMIN caller receives HTTP 404 `RESOURCE_NOT_FOUND`.
 
+### Payment Processor (port 8083)
+
+```
+GET    http://localhost:8083/actuator/health/liveness        # liveness probe
+GET    http://localhost:8083/actuator/health/readiness       # readiness probe
+POST   http://localhost:8083/api/v1/payments                 # Create a payment (CUSTOMER, needs Idempotency-Key)
+GET    http://localhost:8083/api/v1/payments/{paymentId}     # Get a payment (owner/ADMIN)
+POST   http://localhost:8083/webhooks/stripe                 # Stripe webhook (signature-verified, public)
+```
+
+The create-payment request body carries only `{ "orderId": "..." }`; the owner,
+amount, and currency are loaded authoritatively from Order Processor. The same
+`Idempotency-Key` returns the original payment without creating a second Stripe
+PaymentIntent. Drive the webhook reconciliation with the Stripe CLI
+(`stripe listen --forward-to localhost:8083/webhooks/stripe`).
+
 **Sample signup POST body:**
 
 ```json
@@ -288,6 +349,10 @@ Ready-to-run [Bruno](https://www.usebruno.com/) collections live under `bruno/`:
 - `bruno/OrderProcessor` — login (via User Management), create/replay/conflict order,
   get/list/status, and a validation-error case (set `productId` in the **Local** environment
   to an existing Product Catalog product; run top-to-bottom).
+- `bruno/PaymentProcessor` — login (via User Management), create/replay payment, get payment,
+  and an order-not-payable case (set `orderId` in the **Local** environment to a
+  `PENDING_PAYMENT` order; webhook reconciliation is driven with the Stripe CLI, see the
+  collection note; run top-to-bottom).
 
 **Sample category POST body:**
 

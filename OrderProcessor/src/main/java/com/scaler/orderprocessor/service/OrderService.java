@@ -7,6 +7,8 @@ import com.scaler.orderprocessor.config.OrderPricingProperties;
 import com.scaler.orderprocessor.dto.order.OrderCreateRequestDTO;
 import com.scaler.orderprocessor.dto.order.OrderResponseDTO;
 import com.scaler.orderprocessor.dto.order.OrderStatusResponseDTO;
+import com.scaler.orderprocessor.dto.order.PaymentDetailsResponseDTO;
+import com.scaler.orderprocessor.enums.OrderStatus;
 import com.scaler.orderprocessor.exception.BadRequestException;
 import com.scaler.orderprocessor.exception.ConflictException;
 import com.scaler.orderprocessor.exception.NotFoundException;
@@ -131,6 +133,21 @@ public class OrderService {
                         .toList();
         return OrderStatusResponseDTO.builder()
                 .orderId(orderId).status(order.getStatus()).history(history).build();
+    }
+
+    @Transactional(readOnly = true)
+    public PaymentDetailsResponseDTO getPaymentDetails(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("RESOURCE_NOT_FOUND", "Order not found: " + orderId));
+        boolean payable = order.getStatus() == OrderStatus.PENDING_PAYMENT
+                || order.getStatus() == OrderStatus.PAYMENT_FAILED;
+        return PaymentDetailsResponseDTO.builder()
+                .orderId(order.getId())
+                .userId(order.getUserId())
+                .currency(order.getCurrency())
+                .totalAmount(order.getTotalAmount())
+                .payable(payable)
+                .build();
     }
 
     // ---------- Helpers ----------

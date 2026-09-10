@@ -21,6 +21,7 @@
         <module>ProductCatalog</module>
         <module>UserManagement</module>
         <module>OrderProcessor</module>
+        <module>PaymentProcessor</module>
     </modules>
 
     <properties>
