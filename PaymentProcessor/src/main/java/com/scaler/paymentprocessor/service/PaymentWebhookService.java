@@ -6,6 +6,8 @@ import com.scaler.paymentprocessor.model.WebhookEvent;
 import com.scaler.paymentprocessor.repository.PaymentRepository;
 import com.scaler.paymentprocessor.repository.WebhookEventRepository;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -16,11 +18,14 @@ public class PaymentWebhookService {
 
     private final WebhookEventRepository webhookRepository;
     private final PaymentRepository paymentRepository;
+    private final OutboxWriter outboxWriter;
 
     public PaymentWebhookService(WebhookEventRepository webhookRepository,
-                                 PaymentRepository paymentRepository) {
+                                 PaymentRepository paymentRepository,
+                                 OutboxWriter outboxWriter) {
         this.webhookRepository = webhookRepository;
         this.paymentRepository = paymentRepository;
+        this.outboxWriter = outboxWriter;
     }
 
     /** eventType is one of payment_intent.succeeded / payment_intent.payment_failed. */
@@ -53,6 +58,20 @@ public class PaymentWebhookService {
                 payment.setFailureReason(failureReason);
             }
             paymentRepository.save(payment);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("paymentId", payment.getId().toString());
+            payload.put("orderId", payment.getOrderId().toString());
+            payload.put("userId", payment.getUserId().toString());
+            payload.put("status", target.name());
+            payload.put("amount", payment.getAmount().toPlainString());
+            payload.put("currency", payment.getCurrency());
+            if (target == PaymentStatus.FAILED && failureReason != null) {
+                payload.put("failureReason", failureReason);
+            }
+            outboxWriter.write(payment.getOrderId(),
+                    target == PaymentStatus.SUCCEEDED ? "PaymentSucceeded.v1" : "PaymentFailed.v1",
+                    payload);
         }
         event.setPaymentId(payment.getId());
         event.setProcessedAt(Instant.now());

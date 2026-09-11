@@ -1,7 +1,7 @@
-package com.scaler.orderprocessor.repository;
+package com.scaler.paymentprocessor.repository;
 
-import com.scaler.orderprocessor.enums.OutboxStatus;
-import com.scaler.orderprocessor.model.OutboxEvent;
+import com.scaler.paymentprocessor.enums.OutboxStatus;
+import com.scaler.paymentprocessor.model.OutboxEvent;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
