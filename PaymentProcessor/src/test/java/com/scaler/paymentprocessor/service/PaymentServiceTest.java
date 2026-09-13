@@ -71,7 +71,7 @@ class PaymentServiceTest {
         when(orderClient.fetch(orderId)).thenReturn(payableOrder(orderId));
         stubGateway();
 
-        PaymentResponseDTO response = paymentService.create(userId, "key-1", orderId);
+        PaymentResponseDTO response = paymentService.create(userId, "customer@example.com", "key-1", orderId);
 
         assertThat(response.getStatus()).isEqualTo(PaymentStatus.INITIATED);
         assertThat(response.getClientSecret()).isEqualTo("pi_test_1_secret_abc");
@@ -88,8 +88,8 @@ class PaymentServiceTest {
         when(orderClient.fetch(orderId)).thenReturn(payableOrder(orderId));
         stubGateway();
 
-        PaymentResponseDTO first = paymentService.create(userId, "key-1", orderId);
-        PaymentResponseDTO replay = paymentService.create(userId, "key-1", orderId);
+        PaymentResponseDTO first = paymentService.create(userId, "customer@example.com", "key-1", orderId);
+        PaymentResponseDTO replay = paymentService.create(userId, "customer@example.com", "key-1", orderId);
 
         assertThat(replay.getId()).isEqualTo(first.getId());
         assertThat(paymentRepository.count()).isEqualTo(1);
@@ -103,7 +103,7 @@ class PaymentServiceTest {
         notPayable.setPayable(false);
         when(orderClient.fetch(orderId)).thenReturn(notPayable);
 
-        assertThatThrownBy(() -> paymentService.create(userId, "key-1", orderId))
+        assertThatThrownBy(() -> paymentService.create(userId, "customer@example.com", "key-1", orderId))
                 .isInstanceOf(ConflictException.class)
                 .hasFieldOrPropertyWithValue("code", "ORDER_NOT_PAYABLE");
     }
@@ -115,7 +115,7 @@ class PaymentServiceTest {
         otherOwner.setUserId(UUID.randomUUID());
         when(orderClient.fetch(orderId)).thenReturn(otherOwner);
 
-        assertThatThrownBy(() -> paymentService.create(userId, "key-1", orderId))
+        assertThatThrownBy(() -> paymentService.create(userId, "customer@example.com", "key-1", orderId))
                 .isInstanceOf(NotFoundException.class)
                 .hasFieldOrPropertyWithValue("code", "ORDER_NOT_FOUND");
     }
@@ -127,7 +127,7 @@ class PaymentServiceTest {
         usd.setCurrency("USD");
         when(orderClient.fetch(orderId)).thenReturn(usd);
 
-        assertThatThrownBy(() -> paymentService.create(userId, "key-1", orderId))
+        assertThatThrownBy(() -> paymentService.create(userId, "customer@example.com", "key-1", orderId))
                 .isInstanceOf(BadRequestException.class)
                 .hasFieldOrPropertyWithValue("code", "UNSUPPORTED_CURRENCY");
     }

@@ -63,6 +63,7 @@ public class PaymentWebhookService {
             payload.put("paymentId", payment.getId().toString());
             payload.put("orderId", payment.getOrderId().toString());
             payload.put("userId", payment.getUserId().toString());
+            payload.put("email", payment.getCustomerEmail());
             payload.put("status", target.name());
             payload.put("amount", payment.getAmount().toPlainString());
             payload.put("currency", payment.getCurrency());

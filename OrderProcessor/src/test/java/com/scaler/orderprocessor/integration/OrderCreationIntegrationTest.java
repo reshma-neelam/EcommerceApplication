@@ -88,7 +88,7 @@ class OrderCreationIntegrationTest {
 
     @Test
     void create_persistsOrderItemsAddressesHistoryAndOutbox() {
-        OrderResponseDTO created = orderService.create(userId, "key-1", request(2));
+        OrderResponseDTO created = orderService.create(userId, "customer@example.com", "key-1", request(2));
 
         assertThat(orderRepository.count()).isEqualTo(1);
         assertThat(created.getStatus()).isEqualTo(OrderStatus.PENDING_PAYMENT);
@@ -104,8 +104,8 @@ class OrderCreationIntegrationTest {
 
     @Test
     void create_sameKeySameBody_replaysWithoutDuplicate() {
-        OrderResponseDTO first = orderService.create(userId, "key-1", request(2));
-        OrderResponseDTO replay = orderService.create(userId, "key-1", request(2));
+        OrderResponseDTO first = orderService.create(userId, "customer@example.com", "key-1", request(2));
+        OrderResponseDTO replay = orderService.create(userId, "customer@example.com", "key-1", request(2));
 
         assertThat(replay.getId()).isEqualTo(first.getId());
         assertThat(orderRepository.count()).isEqualTo(1);
@@ -113,16 +113,16 @@ class OrderCreationIntegrationTest {
 
     @Test
     void create_sameKeyDifferentBody_throwsDuplicateRequest() {
-        orderService.create(userId, "key-1", request(2));
+        orderService.create(userId, "customer@example.com", "key-1", request(2));
 
-        assertThatThrownBy(() -> orderService.create(userId, "key-1", request(3)))
+        assertThatThrownBy(() -> orderService.create(userId, "customer@example.com", "key-1", request(3)))
                 .isInstanceOf(ConflictException.class)
                 .hasFieldOrPropertyWithValue("code", "DUPLICATE_REQUEST");
     }
 
     @Test
     void getForUser_nonOwnerNonAdmin_throwsResourceNotFound() {
-        OrderResponseDTO created = orderService.create(userId, "key-1", request(2));
+        OrderResponseDTO created = orderService.create(userId, "customer@example.com", "key-1", request(2));
         UUID otherUser = UUID.randomUUID();
 
         assertThatThrownBy(() -> orderService.getForUser(created.getId(), otherUser, false))

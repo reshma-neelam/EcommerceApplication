@@ -52,14 +52,15 @@ public class OrderPersistenceService {
     private EntityManager entityManager;
 
     @Transactional
-    public OrderResponseDTO persist(UUID orderId, UUID userId, String idempotencyKey, String requestHash,
-                                    OrderCreateRequestDTO request, List<ResolvedLine> resolved,
+    public OrderResponseDTO persist(UUID orderId, UUID userId, String customerEmail, String idempotencyKey,
+                                    String requestHash, OrderCreateRequestDTO request, List<ResolvedLine> resolved,
                                     String currency, BigDecimal subtotal, BigDecimal total,
                                     long idempotencyRetentionHours) {
         Order order = new Order();
         order.setId(orderId);
         order.setOrderNumber(generateOrderNumber());
         order.setUserId(userId);
+        order.setCustomerEmail(customerEmail);
         order.setStatus(OrderStatus.PENDING_PAYMENT);
         order.setCurrency(currency);
         order.setSubtotalAmount(subtotal.setScale(4, RoundingMode.HALF_UP));
@@ -103,6 +104,7 @@ public class OrderPersistenceService {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("orderId", orderId.toString());
         payload.put("userId", userId.toString());
+        payload.put("email", customerEmail);
         payload.put("status", OrderStatus.PENDING_PAYMENT.name());
         payload.put("currency", currency);
         payload.put("totalAmount", total.toPlainString());

@@ -12,6 +12,7 @@ public interface TokenService {
     @AllArgsConstructor
     class ParsedToken {
         private final UUID userId;
+        private final String email;
         private final Set<String> roles;
     }
 }

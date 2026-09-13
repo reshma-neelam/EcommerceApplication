@@ -46,7 +46,7 @@ class UserControllerTest {
         when(userProfileService.getCurrent(userId))
                 .thenReturn(new UserResponseDTO(userId, "u@b.com", "U", "B", null, "ACTIVE",
                         Set.of("CUSTOMER"), Instant.now()));
-        String token = tokenService.createAccessToken(userId, Set.of("CUSTOMER"));
+        String token = tokenService.createAccessToken(userId, "u@b.com", Set.of("CUSTOMER"));
         mockMvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("u@b.com"));

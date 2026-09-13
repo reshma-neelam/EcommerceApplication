@@ -52,7 +52,8 @@ class OrderControllerTest {
 
     private RequestPostProcessor customer() {
         return authentication(new UsernamePasswordAuthenticationToken(
-                new AuthenticatedUser(userId), null, List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER"))));
+                new AuthenticatedUser(userId, "customer@example.com"), null,
+                List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER"))));
     }
 
     private OrderCreateRequestDTO validRequest() {
@@ -102,7 +103,7 @@ class OrderControllerTest {
     @Test
     void create_asCustomer_returns201WithLocation() throws Exception {
         UUID orderId = UUID.randomUUID();
-        when(orderService.create(eq(userId), eq("key-1"), any()))
+        when(orderService.create(eq(userId), any(), eq("key-1"), any()))
                 .thenReturn(OrderResponseDTO.builder().id(orderId).build());
 
         mockMvc.perform(post("/api/v1/orders")
@@ -117,7 +118,7 @@ class OrderControllerTest {
 
     @Test
     void create_whenServiceThrowsDuplicate_returns409() throws Exception {
-        when(orderService.create(any(), any(), any()))
+        when(orderService.create(any(), any(), any(), any()))
                 .thenThrow(new ConflictException("DUPLICATE_REQUEST", "already used"));
 
         mockMvc.perform(post("/api/v1/orders")

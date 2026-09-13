@@ -44,7 +44,8 @@ class PaymentControllerTest {
 
     private RequestPostProcessor customer() {
         return authentication(new UsernamePasswordAuthenticationToken(
-                new AuthenticatedUser(userId), null, List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER"))));
+                new AuthenticatedUser(userId, "customer@example.com"), null,
+                List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER"))));
     }
 
     @Test
