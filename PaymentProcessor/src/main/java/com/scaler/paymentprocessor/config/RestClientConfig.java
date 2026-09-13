@@ -3,6 +3,7 @@ package com.scaler.paymentprocessor.config;
 import java.time.Duration;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
@@ -11,11 +12,18 @@ import org.springframework.web.client.RestClient;
 public class RestClientConfig {
 
     @Bean
-    public RestClient orderRestClient(OrderClientProperties props) {
+    @LoadBalanced
+    public RestClient.Builder loadBalancedRestClientBuilder() {
+        return RestClient.builder();
+    }
+
+    @Bean
+    public RestClient orderRestClient(
+            @LoadBalanced RestClient.Builder loadBalancedRestClientBuilder, OrderClientProperties props) {
         ClientHttpRequestFactorySettings settings = ClientHttpRequestFactorySettings.defaults()
                 .withConnectTimeout(Duration.ofMillis(props.getConnectTimeoutMs()))
                 .withReadTimeout(Duration.ofMillis(props.getReadTimeoutMs()));
-        return RestClient.builder()
+        return loadBalancedRestClientBuilder
                 .baseUrl(props.getBaseUrl())
                 .requestFactory(ClientHttpRequestFactoryBuilder.simple().build(settings))
                 .build();

@@ -16,12 +16,13 @@ EcommerceApplication/
   mvnw / mvnw.cmd / .mvn/  # Single root Maven wrapper
   compose.deps.yaml        # Dependency-only stack (MySQL 8.4 + Kafka KRaft)
   .env.example             # Copy to .env for local overrides
+  ServiceDiscovery/        # Eureka service registry (port 8761)
   ProductCatalog/          # Product Catalog Service (port 8080)
   UserManagement/          # User Management Service - identity, auth, JWT (port 8081)
   OrderProcessor/          # Order Processor Service - order lifecycle, snapshots (port 8082)
   PaymentProcessor/        # Payment Processor Service - Stripe test-mode payments, webhooks (port 8083)
   NotificationService/     # Notification Service - Kafka consumer -> email notifications (port 8084)
-  bruno/                   # Bruno REST API collections (ProductCatalog, UserManagement, OrderProcessor, PaymentProcessor, NotificationService)
+  bruno/                   # Bruno REST API collections (ServiceDiscovery, ProductCatalog, UserManagement, OrderProcessor, PaymentProcessor, NotificationService)
   db/migration/            # Reference SQL schemas for all 5 services
   docs/                    # Design documents (LLD, DB Schema)
 ```
@@ -71,9 +72,42 @@ docker compose -f compose.deps.yaml down         # keeps the MySQL/Kafka volumes
 docker compose -f compose.deps.yaml down -v      # also DELETES the data volumes
 ```
 
+## Service discovery (Eureka)
+
+`ServiceDiscovery` is a standalone Spring Cloud Netflix Eureka registry on port
+**8761**. The four HTTP services (`ProductCatalog`, `UserManagement`,
+`OrderProcessor`, `PaymentProcessor`) register with it as Eureka clients, and the
+two synchronous inter-service calls (`OrderProcessor -> ProductCatalog` and
+`PaymentProcessor -> OrderProcessor`) resolve their targets by logical service
+name via Spring Cloud LoadBalancer instead of hardcoded URLs. `NotificationService`
+is not registered — it is Kafka-decoupled with no synchronous
+outbound HTTP calls.
+
+Start the registry first, before the services, so they can register on boot:
+
+```powershell
+.\mvnw.cmd -pl ServiceDiscovery spring-boot:run
+```
+
+The Eureka dashboard is available at <http://localhost:8761>; registered
+applications appear there within ~30s of each service starting. Clients point at
+the registry via `EUREKA_URL` (default `http://localhost:8761/eureka/` for the
+`local` profile, `http://service-discovery:8761/eureka/` for `docker`). Under the
+`test` profile the Eureka client is disabled, so the test suites stay hermetic.
+
+### Configuration via environment variables
+
+| Variable                   | Default                         | Description                                        |
+|----------------------------|---------------------------------|----------------------------------------------------|
+| `SERVER_PORT`              | `8761`                          | Registry HTTP port                                 |
+| `EUREKA_HOSTNAME`          | `localhost` (`service-discovery` in docker) | Registry hostname advertised to clients |
+| `EUREKA_SELF_PRESERVATION` | `false`                         | Self-preservation mode (keep `false` in non-prod)  |
+| `EUREKA_URL`               | `http://localhost:8761/eureka/` | Registry URL used by the client services           |
+
 ## Run the Product Catalog service
 
 The application defaults to the `local` profile (MySQL on `localhost:3306`).
+Start `ServiceDiscovery` (8761) first so the service can register with Eureka.
 
 ```powershell
 .\mvnw.cmd -pl ProductCatalog spring-boot:run
@@ -170,7 +204,7 @@ Start dependencies and the upstream services first, then run the service:
 
 ```powershell
 docker compose -f compose.deps.yaml up -d
-# Start ProductCatalog (8080) and UserManagement (8081) first; JWT_SECRET must match UserManagement.
+# Start ServiceDiscovery (8761), ProductCatalog (8080) and UserManagement (8081) first; JWT_SECRET must match UserManagement.
 .\mvnw.cmd -pl OrderProcessor spring-boot:run
 ```
 
@@ -198,7 +232,8 @@ Shares the `DB_*` variables above (with `DB_NAME` defaulting to
 | `DB_NAME`               | `order_processor_db`    | Database name                                                  |
 | `JWT_SECRET`            | local dev placeholder   | HMAC secret; **must match** User Management for token validation |
 | `JWT_ISSUER`            | `user-management`       | Expected JWT `iss` claim                                       |
-| `PRODUCT_CATALOG_URL`   | `http://localhost:8080` | Base URL for synchronous snapshot/reservation calls           |
+| `PRODUCT_CATALOG_URL`   | `http://ProductCatalog` | ProductCatalog target (Eureka service ID; resolved via LoadBalancer) |
+| `EUREKA_URL`            | `http://localhost:8761/eureka/` | Eureka registry URL                                   |
 | `ORDER_CURRENCY`        | `INR`                   | Single configured order currency (MVP)                        |
 
 ## Run the Payment Processor service
@@ -216,7 +251,7 @@ Start dependencies and the upstream services first, then run the service:
 
 ```powershell
 docker compose -f compose.deps.yaml up -d
-# Start UserManagement (8081) and OrderProcessor (8082) first; JWT_SECRET must match UserManagement.
+# Start ServiceDiscovery (8761), UserManagement (8081) and OrderProcessor (8082) first; JWT_SECRET must match UserManagement.
 # Supply Stripe TEST keys (sk_test_.../whsec_...); the app refuses to start with an sk_live_ key.
 $Env:STRIPE_SECRET_KEY="sk_test_..."; $Env:STRIPE_WEBHOOK_SECRET="whsec_..."
 .\mvnw.cmd -pl PaymentProcessor spring-boot:run
@@ -240,13 +275,26 @@ Shares the `DB_*` variables above (with `DB_NAME` defaulting to
 | `DB_NAME`               | `payment_processor_db`  | Database name                                                  |
 | `JWT_SECRET`            | local dev placeholder   | HMAC secret; **must match** User Management for token validation |
 | `JWT_ISSUER`            | `user-management`       | Expected JWT `iss` claim                                       |
-| `ORDER_PROCESSOR_URL`   | `http://localhost:8082` | Base URL for the internal order payment-details lookup        |
+| `ORDER_PROCESSOR_URL`   | `http://OrderProcessor` | OrderProcessor target (Eureka service ID; resolved via LoadBalancer) |
+| `EUREKA_URL`            | `http://localhost:8761/eureka/` | Eureka registry URL                                   |
 | `STRIPE_SECRET_KEY`     | `sk_test_placeholder`   | Stripe **test** secret key (`sk_live_` is rejected at startup) |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_test_placeholder`| Stripe webhook signing secret for signature verification      |
 | `PAYMENT_CURRENCY`      | `INR`                   | Single configured payment currency (MVP)                      |
 
 ## Verify a running service
 
+
+### Service Discovery (port 8761)
+
+```
+GET    http://localhost:8761/actuator/health/liveness    # liveness probe
+GET    http://localhost:8761/actuator/health/readiness   # readiness probe
+GET    http://localhost:8761/                             # Eureka dashboard (registered apps)
+GET    http://localhost:8761/eureka/apps                  # Registered applications (Accept: application/json)
+```
+
+After the services start, `/eureka/apps` lists `PRODUCTCATALOG`, `USERMANAGEMENT`,
+`ORDERPROCESSOR`, and `PAYMENTPROCESSOR` (NotificationService is not registered).
 
 ### Product Catalog (port 8080)
 
@@ -365,6 +413,7 @@ Emails are logged only (a `[NOTIFICATION]` log line) unless
 
 Ready-to-run [Bruno](https://www.usebruno.com/) collections live under `bruno/`:
 
+- `bruno/ServiceDiscovery` — registry liveness/readiness health checks and a registered-applications query (`GET /eureka/apps`).
 - `bruno/ProductCatalog` — categories, products, images, search, and inventory flows.
 - `bruno/UserManagement` — signup/login/refresh/logout, profile, and address flows
   (requests are chained via variables; run them top-to-bottom with the **Local** environment).
