@@ -22,6 +22,7 @@
         <module>UserManagement</module>
         <module>OrderProcessor</module>
         <module>PaymentProcessor</module>
+        <module>NotificationService</module>
     </modules>
 
     <properties>

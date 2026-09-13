@@ -20,7 +20,8 @@ EcommerceApplication/
   UserManagement/          # User Management Service - identity, auth, JWT (port 8081)
   OrderProcessor/          # Order Processor Service - order lifecycle, snapshots (port 8082)
   PaymentProcessor/        # Payment Processor Service - Stripe test-mode payments, webhooks (port 8083)
-  bruno/                   # Bruno REST API collections (ProductCatalog, UserManagement, OrderProcessor, PaymentProcessor)
+  NotificationService/     # Notification Service - Kafka consumer -> email notifications (port 8084)
+  bruno/                   # Bruno REST API collections (ProductCatalog, UserManagement, OrderProcessor, PaymentProcessor, NotificationService)
   db/migration/            # Reference SQL schemas for all 5 services
   docs/                    # Design documents (LLD, DB Schema)
 ```
@@ -319,6 +320,27 @@ amount, and currency are loaded authoritatively from Order Processor. The same
 PaymentIntent. Drive the webhook reconciliation with the Stripe CLI
 (`stripe listen --forward-to localhost:8083/webhooks/stripe`).
 
+### NotificationService (port 8084)
+
+```
+GET    http://localhost:8084/actuator/health/liveness        # liveness probe
+GET    http://localhost:8084/actuator/health/readiness       # readiness probe
+```
+
+Event-driven only: it consumes `order-events` and `payment-events` from Kafka
+and emails the customer on `OrderCreated.v1`, `OrderStatusChanged.v1`, and
+`PaymentFailed.v1`. Run it after the
+dependencies are up:
+
+```powershell
+docker compose -f compose.deps.yaml up -d
+.\mvnw.cmd -pl NotificationService spring-boot:run
+```
+
+Emails are logged only (a `[NOTIFICATION]` log line) unless
+`NOTIFICATION_MAIL_ENABLED=true` and the SMTP env vars (`MAIL_HOST`, `MAIL_PORT`,
+`MAIL_USERNAME`, `MAIL_PASSWORD`) are set. Default `mvn test` needs no broker or SMTP.
+
 **Sample signup POST body:**
 
 ```json
@@ -353,6 +375,7 @@ Ready-to-run [Bruno](https://www.usebruno.com/) collections live under `bruno/`:
   and an order-not-payable case (set `orderId` in the **Local** environment to a
   `PENDING_PAYMENT` order; webhook reconciliation is driven with the Stripe CLI, see the
   collection note; run top-to-bottom).
+- `bruno/NotificationService` — liveness/readiness health checks (the service is event-driven).
 
 **Sample category POST body:**
 

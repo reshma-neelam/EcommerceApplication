@@ -84,15 +84,15 @@ class OrderServiceMoneyTest {
     void create_computesSubtotalAndTotal_withFourScale() {
         when(productClient.getSnapshot(productA)).thenReturn(snapshot(productA, "100.00"));
         when(productClient.getSnapshot(productB)).thenReturn(snapshot(productB, "50.50"));
-        when(orderPersistenceService.persist(any(), any(), any(), any(), any(), any(), any(), any(), any(), anyLong()))
+        when(orderPersistenceService.persist(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyLong()))
                 .thenReturn(OrderResponseDTO.builder().id(UUID.randomUUID()).build());
 
-        orderService.create(userId, "key-1", request());
+        orderService.create(userId, "customer@example.com", "key-1", request());
 
         ArgumentCaptor<BigDecimal> subtotal = ArgumentCaptor.forClass(BigDecimal.class);
         ArgumentCaptor<BigDecimal> total = ArgumentCaptor.forClass(BigDecimal.class);
-        verify(orderPersistenceService).persist(any(), eq(userId), eq("key-1"), eq("hash"), any(), any(),
-                eq("INR"), subtotal.capture(), total.capture(), anyLong());
+        verify(orderPersistenceService).persist(any(), eq(userId), eq("customer@example.com"), eq("key-1"),
+                eq("hash"), any(), any(), eq("INR"), subtotal.capture(), total.capture(), anyLong());
 
         assertThat(subtotal.getValue()).isEqualByComparingTo("250.5000");
         assertThat(total.getValue()).isEqualByComparingTo("250.5000");
@@ -103,10 +103,10 @@ class OrderServiceMoneyTest {
     void create_reservesBeforePersist_andReleasesOnPersistFailure() {
         when(productClient.getSnapshot(productA)).thenReturn(snapshot(productA, "100.00"));
         when(productClient.getSnapshot(productB)).thenReturn(snapshot(productB, "50.50"));
-        when(orderPersistenceService.persist(any(), any(), any(), any(), any(), any(), any(), any(), any(), anyLong()))
+        when(orderPersistenceService.persist(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyLong()))
                 .thenThrow(new RuntimeException("db down"));
 
-        assertThatThrownBy(() -> orderService.create(userId, "key-2", request()))
+        assertThatThrownBy(() -> orderService.create(userId, "customer@example.com", "key-2", request()))
                 .isInstanceOf(RuntimeException.class);
 
         ArgumentCaptor<UUID> orderId = ArgumentCaptor.forClass(UUID.class);

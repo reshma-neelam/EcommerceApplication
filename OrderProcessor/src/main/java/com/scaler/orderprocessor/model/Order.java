@@ -37,6 +37,9 @@ public class Order {
     @Column(name = "user_id", columnDefinition = "char(36)", nullable = false)
     private UUID userId;
 
+    @Column(name = "customer_email", length = 320)
+    private String customerEmail;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 40)
     private OrderStatus status = OrderStatus.PENDING_PAYMENT;

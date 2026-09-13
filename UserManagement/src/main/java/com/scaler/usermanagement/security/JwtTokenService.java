@@ -30,11 +30,12 @@ public class JwtTokenService implements TokenService {
     }
 
     @Override
-    public String createAccessToken(UUID userId, Set<String> roles) {
+    public String createAccessToken(UUID userId, String email, Set<String> roles) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .issuer(issuer)
                 .subject(userId.toString())
+                .claim("email", email)
                 .claim("roles", roles)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(ttlSeconds)))

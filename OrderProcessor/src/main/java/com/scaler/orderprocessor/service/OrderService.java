@@ -54,7 +54,8 @@ public class OrderService {
 
     // ---------- Create ----------
 
-    public OrderResponseDTO create(UUID userId, String idempotencyKey, OrderCreateRequestDTO request) {
+    public OrderResponseDTO create(UUID userId, String customerEmail, String idempotencyKey,
+                                   OrderCreateRequestDTO request) {
         String requestHash = requestHasher.hash(request);
 
         Optional<OrderIdempotency> existing =
@@ -88,8 +89,8 @@ public class OrderService {
                 .toList());
 
         try {
-            return orderPersistenceService.persist(orderId, userId, idempotencyKey, requestHash, request,
-                    resolved, currency, subtotal, total, idempotencyRetentionHours);
+            return orderPersistenceService.persist(orderId, userId, customerEmail, idempotencyKey, requestHash,
+                    request, resolved, currency, subtotal, total, idempotencyRetentionHours);
         } catch (RuntimeException ex) {
             productClient.releaseQuietly(orderId); // compensation
             throw ex;

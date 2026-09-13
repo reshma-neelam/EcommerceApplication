@@ -36,9 +36,10 @@ public class JwtTokenService implements TokenService {
                     .parseSignedClaims(token)
                     .getPayload();
             UUID userId = UUID.fromString(claims.getSubject());
+            String email = claims.get("email", String.class);
             List<String> roleList = claims.get("roles", List.class);
             Set<String> roles = roleList == null ? Set.of() : new HashSet<>(roleList);
-            return new ParsedToken(userId, roles);
+            return new ParsedToken(userId, email, roles);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new UnauthorizedException("UNAUTHORIZED", "Invalid or expired token");
         }

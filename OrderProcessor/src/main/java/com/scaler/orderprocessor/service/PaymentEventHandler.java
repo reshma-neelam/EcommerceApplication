@@ -94,6 +94,7 @@ public class PaymentEventHandler {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("orderId", orderId.toString());
         payload.put("userId", order.getUserId().toString());
+        payload.put("email", order.getCustomerEmail());
         payload.put("status", target.name());
         payload.put("currency", order.getCurrency());
         payload.put("totalAmount", order.getTotalAmount().toPlainString());

@@ -133,7 +133,7 @@ public class AuthenticationService {
 
     private AuthTokensDTO issueTokens(User user) {
         Set<String> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
-        String accessToken = tokenService.createAccessToken(user.getId(), roles);
+        String accessToken = tokenService.createAccessToken(user.getId(), user.getEmail(), roles);
 
         String refreshToken = refreshTokenSupport.generateToken();
         UserSession session = new UserSession();

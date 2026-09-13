@@ -33,7 +33,8 @@ public class PaymentController {
     public ResponseEntity<PaymentResponseDTO> create(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody CreatePaymentRequestDTO request) {
-        PaymentResponseDTO created = paymentService.create(currentUserId(), idempotencyKey, request.getOrderId());
+        PaymentResponseDTO created = paymentService.create(currentUserId(), currentUserEmail(),
+                idempotencyKey, request.getOrderId());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}").buildAndExpand(created.getId()).toUri();
         return ResponseEntity.created(location).body(created);
@@ -47,6 +48,11 @@ public class PaymentController {
     private UUID currentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return ((AuthenticatedUser) auth.getPrincipal()).getUserId();
+    }
+
+    private String currentUserEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return ((AuthenticatedUser) auth.getPrincipal()).getEmail();
     }
 
     private boolean isAdmin() {

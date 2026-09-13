@@ -37,7 +37,7 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentResponseDTO create(UUID userId, String idempotencyKey, UUID orderId) {
+    public PaymentResponseDTO create(UUID userId, String customerEmail, String idempotencyKey, UUID orderId) {
         Optional<Payment> existing = paymentRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey);
         if (existing.isPresent()) {
             if (!existing.get().getOrderId().equals(orderId)) {
@@ -66,6 +66,7 @@ public class PaymentService {
         payment.setId(UUID.randomUUID());
         payment.setOrderId(orderId);
         payment.setUserId(userId);
+        payment.setCustomerEmail(customerEmail);
         payment.setStatus(PaymentStatus.INITIATED);
         payment.setCurrency(order.getCurrency());
         payment.setAmount(order.getTotalAmount());

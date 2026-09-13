@@ -36,7 +36,7 @@ public class OrderController {
     public ResponseEntity<OrderResponseDTO> create(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody OrderCreateRequestDTO request) {
-        OrderResponseDTO created = orderService.create(currentUserId(), idempotencyKey, request);
+        OrderResponseDTO created = orderService.create(currentUserId(), currentUserEmail(), idempotencyKey, request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}").buildAndExpand(created.getId()).toUri();
         return ResponseEntity.created(location).body(created);
@@ -61,6 +61,11 @@ public class OrderController {
     private UUID currentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return ((AuthenticatedUser) auth.getPrincipal()).getUserId();
+    }
+
+    private String currentUserEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return ((AuthenticatedUser) auth.getPrincipal()).getEmail();
     }
 
     private boolean isAdmin() {

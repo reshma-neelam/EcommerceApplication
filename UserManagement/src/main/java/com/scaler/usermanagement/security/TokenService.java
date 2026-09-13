@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 public interface TokenService {
-    String createAccessToken(UUID userId, Set<String> roles);
+    String createAccessToken(UUID userId, String email, Set<String> roles);
 
     ParsedToken parse(String token);
 
